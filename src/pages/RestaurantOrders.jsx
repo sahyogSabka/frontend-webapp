@@ -17,6 +17,10 @@ import {
 } from "@material-tailwind/react";
 import { updateOrderStatus } from "../services/Order";
 import OrderType from "../utils/getOrderType.js";
+import io from "socket.io-client"; // Import socket.io-client
+
+// Initialize socket connection
+const socket = io(import.meta.env.VITE_BACKEND_DOMAIN_URL); // Replace with your backend URL
 
 export default function RestaurantOrders(props) {
   let [isLoading, setIsLoading] = useState(false);
@@ -26,7 +30,7 @@ export default function RestaurantOrders(props) {
   const [status, setStatus] = useState(null);
   const [editDialogLoading, setEditDialogLoading] = useState(false);
   const [isAmountTaken, setIsAmountTaken] = useState(false);
-  let header = [
+  let header = useMemo(() => [
     { 
       title: "Username / Usermobile",
       value: "userName",
@@ -104,7 +108,7 @@ export default function RestaurantOrders(props) {
         </button>
       ),
     },
-  ];
+  ]);
 
   async function updateStatus() {
     try {
@@ -188,8 +192,24 @@ export default function RestaurantOrders(props) {
   }
 
   useEffect(() => {
+    // Fetch initial orders data
     refreshBtnClicked();
+
+    // Listen for the "orderCreatedByRestaurant" event
+    socket.on("orderCreatedByRestaurant", (newOrder) => {
+      console.log("New order received:", newOrder);
+      setOrderData((prevData) => [newOrder.data, ...prevData]); // Add the new order to the list
+    });
+
+    // Cleanup on component unmount
+    return () => {
+      socket.off("orderCreatedByRestaurant");
+    };
   }, [props.restaurantData?._id]);
+
+  // useEffect(() => {
+  //   refreshBtnClicked();
+  // }, [props.restaurantData?._id]);
 
   return (
     <>
