@@ -10,6 +10,10 @@ import localStorageFunctions from "../utils/localStorageFunctions.js";
 import RefreshBtn from "../components/RefreshBtn.jsx";
 import { useLocation } from "react-router-dom";
 import OrderType from "../utils/getOrderType.js";
+import io from "socket.io-client"; // Import socket.io-client
+
+// Initialize socket connection
+const socket = io(import.meta.env.VITE_BACKEND_DOMAIN_URL); // Replace with your backend URL
 
 export function Orders() {
   const location = useLocation();
@@ -33,14 +37,26 @@ export function Orders() {
   };
 
   useEffect(() => {
-    if (rawData?.previousPath != "/checkout") {
-      handleRefresh();
-    } else {
-      setIsLoading(true);
-      setTimeout(() => {
-        handleRefresh();
-      }, 1000);
-    }
+    handleRefresh()
+
+    // Set up socket listeners
+    socket.on("orderCreated", (newOrder) => {
+      setOrdersData((prevOrders) => [newOrder, ...prevOrders]);
+    });
+
+    socket.on("orderUpdated", (updatedOrder) => {
+      setOrdersData((prevOrders) =>
+        prevOrders.map((order) =>
+          order._id === updatedOrder.data._id ? updatedOrder.data : order
+        )
+      );
+    });
+
+    // Clean up socket listeners on component unmount
+    return () => {
+      socket.off("orderCreated");
+      socket.off("orderUpdated");
+    };
   }, []);
 
   async function handleRefresh() {
@@ -67,7 +83,7 @@ export function Orders() {
           {ordersData
             .sort((a, b) => b?._id?.localeCompare(a?._id))
             ?.map((order) => (
-              <React.Fragment key={order._id}>
+              <React.Fragment key={order?._id}>
                 {order?.prepareUpto && !order?.isDelivered ? (
                   <Notification
                     msg={
@@ -94,17 +110,17 @@ export function Orders() {
                   <span></span>
                 )}
                 <OrderCard
-                  key={order._id}
-                  items={order.items || []}
+                  key={order?._id}
+                  items={order?.items || []}
                   orderStatus={statusChecker.checkStatus(order)}
                   rawData={{
-                    orderId: order._id,
-                    amount: order.amount,
-                    paidAmount: order.paidAmount,
-                    codAmount: order.codAmount,
-                    orderType: OrderType.getOrderType(order.orderType),
+                    orderId: order?._id,
+                    amount: order?.amount,
+                    paidAmount: order?.paidAmount,
+                    codAmount: order?.codAmount,
+                    orderType: OrderType.getOrderType(order?.orderType),
                     createdAt: dateFormatter.formatDate(
-                      order.createdAt,
+                      order?.createdAt,
                       "MMMM Do YYYY, h:mm:ss a"
                     ),
                   }}

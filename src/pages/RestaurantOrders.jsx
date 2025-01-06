@@ -121,6 +121,7 @@ export default function RestaurantOrders(props) {
         setEditDialog(false);
         refreshBtnClicked();
         setStatus(null);
+        setIsAmountTaken(false);
       }
     } catch (error) {
       console.error("Error while updating orders data ----> ", error);
