@@ -5,7 +5,7 @@ FROM node:18 AS build
 WORKDIR /app
 
 # Copy package.json and package-lock.json first (improves caching)
-COPY package.json  ./
+COPY package.json package-lock.json  ./
 RUN npm install 
 
 # Copy the entire project after dependencies are installed
